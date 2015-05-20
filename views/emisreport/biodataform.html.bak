@@ -1,0 +1,50 @@
+<html><head><title></title></head><body>{{extend 'reportlayout.html'}}
+<div class="CSSTableGenerator" align="center">
+                
+                {{=IMG(_src=(URL('static', 'images/afitlogo.gif')), _width="50px", _height="50px")}}
+                <h2>{{=db.school(id=db.department(id=departid).school).name}} </h2>
+                <h4>{{=db.department(id=departid).name}} </h4>
+                <h4> AIR FORCE INSTITUTE OF TECHNOLOGY</h4>
+                <h4> NIGERIAN AIR FORCE </h4>
+                <h4> <u>STUDENT BIODATA LIST</u></h4>
+                <h4>Session:{{=db.school_session(sessionid).name}}</h4>
+    
+     </div>
+     <p style="page-break-after:always;"></p>
+    
+    <div class="CSSTableGenerator">
+       <table>
+           <tr>
+               <td>Photo</td>
+               <td>RegNo</td>
+               <td>Surname</td>
+               <td>Firstname</td>
+               <td>SeviceNo</td>
+               <td>Gender</td>
+               <td>Program</td>
+               <td>State</td>
+           </tr>
+           {{for student in students:}}
+           
+           
+          
+           <tr>
+               <td>{{=IMG(_src=(URL(a='emis', c='default', f='download', args=student.photo)), _width="50px", _height="50px")}}</td>
+               <td>{{=student.matric_no}}</td>
+               <td>{{=student.surname}}</td>
+               <td>{{=student.firstname}}</td>
+               <td>{{=student.service}}</td>
+               <td>{{=student.sex}}</td>
+               <td>{{=db.program(student.program).name}}</td>
+               <td>{{=student.state_origin}}</td>
+           </tr>
+            {{pass}}
+        </table>
+    </div>
+    
+    
+    
+    
+    
+</body>
+</html>

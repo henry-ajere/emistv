@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head><title></title></head><body>{{extend 'reportlayout.html'}}
+    <div class="CSSTableGenerator" align="center">
+                
+                {{=IMG(_src=(URL('static', 'images/afitlogo.gif')), _width="50px", _height="50px")}}
+                <h2>{{=db.school(id=db.department(id=departid).school).name}} </h2>
+                <h4>{{=db.department(id=departid).name}} </h4>
+                <h4> AIR FORCE INSTITUTE OF TECHNOLOGY</h4>
+                <h4> NIGERIAN AIR FORCE </h4>
+                <h4> <u>STUDENT EXAMINATION RESULT LIST</u></h4>
+                <h4>Session:{{=db.school_session(id=sessionid).name}} SCORESHEET </h4>
+    
+     </div>
+     <hr>
+<p style="page-break-after:always;"></p>
+   
+    
+<div class="CSSTableGenerator">
+    
+    
+{{for semester in semesters:}}
+    
+    
+    {{for course in filter(lambda course: course.semester == semester.semester, courses):}}
+       
+            <strong>{{=semester.semester}} Semester, {{=db.school_session(semester.sessions).name}} Session </strong>
+            <p>
+                <strong>Course Code: <u>{{=db.course_subject(course.course_subject).code}}</u></strong>
+            </p>
+            <p>
+                 <strong><u>Course Title: {{=db.course_subject(course.course_subject).title.upper()}}</u> </strong>
+            </p>
+           
+        
+        {{counter=0}}
+        <p>
+            
+        </p>
+        <table>
+            <tr>
+                <td>SN:</td>
+                <td>RegNo:</td>
+                <td>SVCNo:</td>
+                <td>Name</td>
+                <td>CA(40%)</td>
+                <td>Exam(60%)</td>
+                <td>Total</td>
+            </tr>
+
+        {{for student in students:}}
+            {{counter=counter + 1}}
+        
+             <tr>
+                <td>{{=counter}}</td>
+                <td>{{=student.matric_no}}</td>
+                <td>{{=student.service}}</td>
+                <td>{{=student.surname}}</td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+            </tr>
+            {{pass}}
+            
+        </table>
+        <p>.</p>
+        <p>.</p>
+        <p>.</p>
+        <p>.</p>
+       <p>
+           <strong>Course Lecturer Sign & Date:</strong>..............................................................................
+     </p>
+    <p style="page-break-after:always;"></p>
+    <p>
+        
+    </p>
+    <p>
+        
+    </p>
+    
+        
+    {{pass}}
+
+{{pass}}
+
+</div>     
+    
+
+</body></html>

@@ -1,0 +1,34 @@
+{{extend 'reportlayout.html'}}
+
+{{=form}}
+<strong>
+   {{=SPAN(A('Notice Board View', _href=URL('emisreport', 'print_resultlistwts', vars=request.vars)))}}
+   
+</strong>
+<p>
+    <strong>
+   {{=SPAN(A('Print View', _href=URL('emisreport', 'print_resultlist', vars=request.vars)))}}
+    </strong>
+</p>
+
+
+
+<p>
+    <strong>
+   {{=SPAN(A('Print Master Score Sheet', _href=URL('emisreport', 'scoresheet', vars=request.vars)))}}
+    </strong> 
+
+</p>
+
+<p>
+    <strong>
+   {{=SPAN(A('Print Course Score Sheet', _href=URL('emisreport', 'course_scoresheet', vars=request.vars)))}}
+
+    </strong> 
+</p>
+
+<p>
+    <strong>
+   {{=SPAN(A('Result Analysis', _href=URL('emisreport', 'resultanalysis', vars=request.vars)))}}
+    </strong>
+</p>

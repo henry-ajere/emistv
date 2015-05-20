@@ -1,0 +1,31 @@
+{{extend 'layout.html'}}
+<h4 align="center">Manage Exam & Records Here: </h4>
+
+<div align="center">
+    <table border="1" cellspacing="20">
+        <tr>
+            <td>{{=A(IMG(_src=URL('static', 'images/addresult.jpg'), _width="100px", _height="90px"), _href="add_result")}}
+            </td>
+            <td></td>
+            <td>{{=A(IMG(_src=URL('static', 'images/showresult.jpg'), _width="100px", _height="90px"), _href="findresult")}}</td>
+            <td></td>
+            <td>{{=A(IMG(_src=URL('static', 'images/printresult.jpg'), _width="100px", _height="90px"), _href=URL('emisreport', 'getdeptsession'))}}</td>
+        </tr>
+        
+        <tr>
+            <td>{{=A('Add Result', _href="add_result")}}</td>
+            <td></td>
+            <td>{{=A('Show Result', _href="findresult")}}</td>
+            <td></td>
+            <td>{{=A('GetResult', _href=URL('emisreport', 'getdeptsession'))}}</td>
+        </tr>
+        
+        <tr>
+            <td>{{=A('Load Main Courses', _href="load_main_courses")}}</td>
+            <td></td>
+            <td>{{=A('Save Results', _href="loadresults")}}</td>
+            <td></td>
+            <td>{{=A('Biodata', _href=URL('emisreport', 'biodataform'))}}</td>
+        </tr>
+    </table>
+</div>

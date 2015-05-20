@@ -1,0 +1,24 @@
+{{extend 'layout.html'}}
+<h4 align="center">Manage Student Here:</h4>
+
+<div align="center">
+    <table border="1" cellspacing="20">
+        <tr>
+            <td>{{=A(IMG(_src=URL('static', 'images/studentlist.jpg'), _width="100px", _height="90px"), _href="studentmanager")}}
+            </td>
+            <td></td>
+            <td>{{=A(IMG(_src=URL('static', 'images/account.jpg'), _width="100px", _height="90px"), _href="afitpay")}}</td>
+            <td></td>
+            <td>{{=A(IMG(_src=URL('static', 'images/addstudent.jpg'), _width="100px", _height="90px"), _href="addstudent")}}</td>
+        </tr>
+        
+        <tr>
+            <td>{{=A('List Student', _href="studentmanager")}}</td>
+            <td></td>
+            <td>{{=A('Student Account', _href="findresult")}}</td>
+            <td></td>
+            <td>{{=A('Add Student', _href="addstudent")}}</td>
+        </tr>
+        
+    </table>
+</div>

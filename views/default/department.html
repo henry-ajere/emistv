@@ -1,0 +1,25 @@
+{{extend 'layout.html'}}
+
+<h4 align="center">Manage Department & Courses Here:</h4>
+
+<div align="center">
+    <table border="1" cellspacing="20">
+        <tr>
+            <td>{{=A(IMG(_src=URL('static', 'images/department.jpg'), _width="100px", _height="90px"), _href="man_dept")}}
+            </td>
+            <td></td>
+            <td>{{=A(IMG(_src=URL('static', 'images/adddepartment.jpg'), _width="100px", _height="90px"), _href="add_dept")}}</td>
+            <td></td>
+            <td>{{=A(IMG(_src=URL('static', 'images/addcourse.png'), _width="100px", _height="90px"), _href="add_course")}}</td>
+        </tr>
+        
+        <tr>
+            <td>{{=A('List Department ', _href="man_dept")}}</td>
+            <td></td>
+            <td>{{=A('Create Department', _href="add_dept")}}</td>
+            <td></td>
+            <td>{{=A('Add Course', _href="add_course")}}</td>
+        </tr>
+        
+    </table>
+</div>

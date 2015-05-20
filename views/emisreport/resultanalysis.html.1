@@ -1,0 +1,106 @@
+{{from __future__ import division}}
+<html><head><title></title></head><body>{{extend 'reportlayout.html'}}
+<div class="CSSTableGenerator" align="center">
+                
+                {{=IMG(_src=(URL('static', 'images/afitlogo.gif')), _width="50px", _height="50px")}}
+                <h2>{{=db.school(id=db.department(id=departid).school).name}} </h2>
+                <h4>{{=db.department(id=departid).name}} </h4>
+                <h4> AIR FORCE INSTITUTE OF TECHNOLOGY</h4>
+                <h4> NIGERIAN AIR FORCE </h4>
+                 <h5>SESSION:{{=db.school_session(sessionid).name}}</h5>
+                    
+                    
+    
+ </div>
+     <p style="page-break-after:always;"></p>
+    
+<div class="CSSTableGenerator" align="center">
+    {{for semester in semesters:}}
+    
+    <table>
+        <tr>
+            <td>SN</td>
+            <td>COURSE TITLE</td>
+            <td>CODE</td>
+            <td>AA</td>
+            <td>A</td>
+            <td>AB</td>
+            <td>B</td>
+            <td>BC</td>
+            <td>C</td>
+            <td>CD</td>
+            <td>D</td>
+            <td>E</td>
+            <td>ABS</td>
+            <td>NT</td>
+            <td>EM</td>
+            <td>SK</td>
+            <td>CO</td>
+            <td>EX</td>
+            <td>NA</td>
+            <td>TOTAL</td>
+            <td>MEAN</td>
+            <td>STD DEV</td>
+            <td>%PASS</td>
+            
+            
+        </tr>
+        {{regcrs=db.registered_course}}
+        {{cnter = 0}}
+        {{for course in filter(lambda course: course.semester == semester.semester, courses):}}
+            {{cnter=cnter+1}}
+           {{totalgrade, totalscores, sqrdiffsum, mean = 0,0,0,0}}
+           
+        <tr>
+            
+            <td>{{=cnter}}</td>
+            
+            <td>{{=db.course_subject(course.course_subject).title}}</td>
+            <td><b>{{=db.course_subject(course.course_subject).code}}</b></td>
+            {{for grade in grades:}}
+                {{countgrade, failgrade, countscore, sqrdiff= 0,0,0,0}}
+            <td>{{for result in results.find(lambda result: result.course_subject==course.course_subject and result.grade==grade):}}
+                    {{countgrade += 1}}
+                    {{countscore +=result.scores}}
+                    {{sqrdiff += (result.scores - mean)**2}}
+                    {{sqrdiffsum = sqrdiff}}
+                    {{if grade == 'E' :}}
+                        {{failgrade += 1}}
+                    {{pass}} <!-- If loop -->
+                    
+                {{pass}} <!-- result loop -->
+                
+                <p>
+                    {{=countgrade}}
+                    {{totalgrade += countgrade}}
+                    {{totalscores += countscore}}
+                    
+                    
+                    
+                </p>
+            </td>
+            {{pass}} <!-- Grade Loop -->
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+            <td>{{=totalgrade}}</td>
+            <td>{{mean=round(totalscores/totalgrade,2)}} {{=mean}}</td>
+            <td>{{=sqrdiffsum}}</td>
+            
+            <td>{{=round((totalgrade-failgrade)/totalgrade, 2)*100}}%</td>
+            
+            {{pass}} <!-- Course Loop -->
+        </tr>
+        
+    </table>
+    <!-- {{=db(regcrs.id > 0).select(regcrs.student, regcrs.course_subject, regcrs.grade, regcrs.semester, orderby=regcrs.semester )}} -->
+   <!-- <p style="page-break-after:always;"></p> -->
+    
+    
+    {{pass}} <!-- Semester Loop -->
+    
+</div>

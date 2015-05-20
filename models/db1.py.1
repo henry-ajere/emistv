@@ -1,0 +1,155 @@
+# coding: utf8
+from plugin_lazy_options_widget import lazy_options_widget
+from plugin_suggest_widget import suggest_widget
+from cascadedrop import CascadingSelect
+
+
+db.define_table('school',
+                Field('name', requires=IS_NOT_EMPTY()),
+                auth.signature,
+                format='%(name)s'
+                )
+
+
+db.define_table('department',
+                Field('school', db.school), #, requires=IS_IN_DB(db, db.school.id, '%(name)s')),
+                Field('name', requires=IS_NOT_EMPTY()),
+                auth.signature,
+                format='%(name)s'
+                )
+db.define_table('program',
+                Field('department', 'reference department'),
+                Field('classification', requires=IS_IN_SET(['ND', 'HND', 'PRE-ND', 'PGD','NON-ND'])),
+                Field('the_option', label='Option'),
+                Field('name', requires=IS_NOT_EMPTY()),
+                auth.signature,
+                format='%(name)s %(classification)s %(the_option)s'
+                )
+
+db.define_table('course_subject',
+                Field('department', 'reference department'), #requires=IS_IN_DB(db, db.department, '%(name)s')),
+                Field('title'),
+                Field('code'),
+                #auth.signature,
+                 format='%(code)s'
+                )
+
+                
+db.define_table('course_curriculum',
+                Field('program', 'reference program'), #requires=IS_IN_DB(db, db.program.id, '%(name)s')),
+                Field('course_subject', 'reference course_subject'), #requires=IS_IN_DB(db, db.course_subject.id, '%(code)s')),
+                Field('semester', requires=IS_IN_SET(['1st', '2nd', '3rd', '4th'])),
+                Field('credit_unit', 'integer'),
+                auth.signature,
+                format='%(course_subject)s'
+                
+                )
+    
+db.define_table('student',
+                Field('matric_no', unique=True),
+                Field('surname', requires=IS_NOT_EMPTY()),
+                Field('firstname', requires=IS_NOT_EMPTY()),
+                Field('lastname', requires=IS_NOT_EMPTY()),
+                Field('service', comment='For civilians indicate employer'),
+                Field('last_unit', comment='For civilians indicate last place of employement'),
+                Field('rankk', label='Rank', comment='if applicable', default = 'None'),
+                Field('marital', requires=IS_IN_SET(['Married', 'Single'])),
+                Field('birth_day', 'date'),
+                Field('nationality', requires=IS_IN_SET(['Nigerian', 'West Africa', 'International'])),
+                Field('state_origin', comment='requires drop down'),
+                Field('lga', comment='cascading drop from state'),
+                Field('blood_group', requires=IS_IN_SET(['O', 'A', 'B'])),
+                Field('phone_no', unique=True),
+                Field('email', requires=IS_EMAIL()),
+                Field('sex', requires=IS_IN_SET(['Male', 'Female']), widget=SQLFORM.widgets.radio.widget),
+                #Field('program_of_study', requires=IS_IN_SET(['pre-ND','ND','pre-HND', 'HND', 'PGD'])),
+                Field('program', 'reference program', label='Program_of_study'), 
+                Field('school_level', requires=IS_IN_SET(['NDI', 'NDII', 'HNDI', 'HNDII', 'PGD'])),
+                Field('photo', 'upload'),
+                auth.signature,
+                format='%(matric_no)s'
+                )
+#cascade=CascadingSelect(db.school, db.department)
+#cascade.prompt = lambda table: "--choose "  + ("an " if str(table)[0] in 'aeiou' else "a ") + str(table) + "--"
+#db.student.department.widget = cascade.widget
+
+
+db.define_table('school_session',
+                Field('name', requires=IS_NOT_EMPTY()),
+                Field('session_begin', 'date'),
+                Field('session_close', 'date'),
+                Field('status',requires=IS_IN_SET(['Open','Closed'])),
+                auth.signature,
+                format = '%(name)s'
+                
+                )
+db.define_table('sessions_enrol',
+                Field('student', 'reference student'),
+                Field('sessions', 'reference school_session')
+                )
+               
+
+
+def calcgradeII(row):
+    m = row.registered_course.scores
+    if m>69 and m<101:
+        t = 'A', 4, 'Excellent'
+        return t
+    elif m>64 and m<70:
+        t = 'AB', 3, 'Very Good'
+        return t
+    elif m>59 and m<65:
+        t = 'B', 2, 'Good'
+        return t
+    elif m>54 and m<60:
+        t = 'BC', 2.75, 'Fairly Good'
+        return t
+    elif m>49 and m<55:
+        t = 'C', 2.50, 'Very Fair'
+        return t
+    elif m>44 and m<50:
+        t = 'CD', 2.25, 'Fair'
+        return t
+    elif m>39 and m<45:
+        t = 'D', 2.0, 'Just Fair'
+        return t
+    elif m>=0 and m<40:
+        t = 'E', 0, 'Fail'
+        return t
+    else:
+       t='Nil', -1, 'No-Result'
+       return t
+    
+STATUS_SET = ['ABS', 'NT', 'EM,', 'AE', 'PI', 'NA', 'SK','CO','CP', 'IS', 'EX', 'NR', 'DE']
+CURRENT_SESSION = 5
+
+db.define_table('registered_course',
+                Field('student', 'reference student'),
+                Field('course_subject', 'reference course_subject'),
+                Field('credit_unit', 'integer', default = 0),
+                Field('semester', requires=IS_IN_SET(['1st', '2nd', '3rd', '4th'])),
+                Field('sessions', 'reference school_session'),
+                Field('types', requires=IS_IN_SET(['M', 'CO', 'EL'], zero=('--choose type--'))),
+                Field('status', requires=IS_IN_SET(STATUS_SET)),
+                Field('scores', 'float', default=0),
+                #Field('department_code', compute=lambda row: db.student(id=row.student).department),
+                #Field('grade', readable=True, compute=lambda r: calcgrade(r['scores'])[0] ),
+                Field.Virtual('grade', lambda row: calcgradeII(row)[0]), 
+                #Field('wp', 'float',compute=lambda r: calcgrade(r['scores'])[1]),
+                Field.Virtual('wp', lambda row: calcgradeII(row)[1]),
+                #Field('Wgp', 'float', compute=lambda r: r['credit_unit']*r['wp']),
+                Field.Virtual('Wgp', lambda row: row.registered_course.credit_unit*row.registered_course.wp),
+                #Field('remark', readable=True, compute=lambda r: calcgrade(r['scores'])[2] )
+                Field.Virtual('remark', lambda row: calcgradeII(row)[2]),
+                )
+#query=db(db.registered_course.student == student_id)
+db.registered_course.course_subject.requires=IS_NOT_IN_DB(db(db.registered_course.student == (lambda row: row.student)), db.registered_course.course_subject)
+def load_curriculum(student_id):
+    course=db.registered_course
+    curriculumdb = db.course_curriculum
+    curriculums = db(curriculumdb.program == db.student(id=student_id).program).select()
+    if curriculums:
+        for curriculum in curriculums:
+            course.insert(student=student_id, course_subject=curriculum.course_subject, credit_unit=curriculum.credit_unit, semester=curriculum.semester, sessions=CURRENT_SESSION, types='M', status='CP', scores=0.0)
+    else:
+        return None

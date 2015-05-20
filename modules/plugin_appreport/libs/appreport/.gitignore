@@ -1,0 +1,10 @@
+*.pyc
+*.bak
+*.1
+/databases
+/cache
+/errors
+/sessions
+.project
+.pydevproject
+*.class

@@ -1,0 +1,8 @@
+{{extend 'transcriptlayout.html'}}
+<h4>List of results for transcript printing: </h4>
+
+{{=form}}
+
+<strong>
+   {{=SPAN(A('Printer View', _href=URL('emisreport', 'transcriptor', vars=request.vars)))}}
+</strong>

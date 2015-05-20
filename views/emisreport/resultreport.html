@@ -1,0 +1,112 @@
+{{extend 'reportlayout.html'}}
+<div class="CSSTableGenerator" align="center">
+    {{=IMG(_src=(URL('static', 'images/afitlogo.gif')), _width="100px", _height="100px")}}
+    <h2>{{=db.school(schoolid).name}}</h2>
+    <h4>{{=db.department(departid).name}} </h4>
+    <h4>{{=program}}</h4>
+    <h4> AIR FORCE INSTITUTE OF TECHNOLOGY</h4>
+    <h4> NIGERIAN AIR FORCE </h4>
+    <h4> <u>STUDENT ({{=student.matric_no}}) EXAMINATION RESULT SLIP</u></h4>
+    <h4>Session:{{=sessn}} Results </h4>
+    <div align="center">
+        {{=IMG(_src=(URL(a='emis', c='default', f='download', args=student.photo)), _width="100px", _height="100px")}}
+    </div>
+    <p></p>
+    
+</div>
+<hr>
+<p style="page-break-after:always;"></p>
+
+<p>
+    
+</p>
+<p>
+    
+</p>
+<p>
+    
+</p>
+<div  class="CSSTableGenerator" >
+    {{semcount=0}}
+    {{countv,sgpa, cgp, ctcu,cgpa =0,0,0,0,0}}
+    {{for semester in semesters:}}
+    {{sgpa = 0}}
+    {{tcu = 0}}
+    {{gp = 0}}
+    {{semcount=semcount+1}}
+        
+    <table>
+        
+        <tr>
+            <th>SESSION</th>
+            <th>SEMESTER</th>
+            <th>SN</th>
+            <th>CODE</th>
+            <th>COURSE TITLE</th>
+            <th>C.U</th>
+            <th>L.G</th>
+            <th>W.P</th>
+            <th>G.P</th>
+            <th>Remarks</th>
+            
+        </tr>
+        <tr>
+            <td>{{=sessn}}</td>
+            <td>{{=semester.semester}}</td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+        </tr>
+        
+        {{for result in filter(lambda result:result.semester==semester.semester, results):}}
+            
+            {{countv, cgp, gp, ctcu, tcu = countv + 1, cgp + result.Wgp, gp + result.Wgp, ctcu + result.credit_unit, tcu + result.credit_unit}}
+        <tr>
+            <td>-</td>
+            <td>-</td>
+            <td>{{=countv}}</td>
+            <td>{{=db.course_subject(result.course_subject).code}}</td>
+            <td>{{=db.course_subject(result.course_subject).title}}</td> 
+            <td>{{=result.credit_unit}}</td>
+            <td>{{=result.grade}}</td>
+            <td>{{=result.wp}}</td>
+            <td>{{=result.Wgp}}</td>
+            <td>{{=result.remark}}</td>
+                    
+        </tr>
+        {{pass}}
+        
+        <p>
+           <hr></hr> 
+        </p>
+        {{sgpa=round(gp/tcu,2)}}
+        {{cgpa=round(cgp/ctcu,2)}}
+        
+
+        <table> 
+            <th><h4>Sem GPA={{=sgpa}}</h4></th>
+                
+                
+            <th><h4>Cumm. Total Grade Pt(CGP)= {{=cgp}}</h4></th>
+            <th><h4>Cumm. Total Credit Unit(CTCU)= {{=ctcu}}</h4></th>
+                
+                
+            <th><h4>Cumm. Grade Pt. Average(CGPA)= {{=cgpa}}</h4></th>
+                
+                
+            
+        </table>
+            <p>
+              </hr>  
+            </p>
+    </table>
+    {{pass}}
+    
+    
+    
+</div>

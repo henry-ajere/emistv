@@ -1,0 +1,429 @@
+(dp1
+S'output'
+p2
+S"<type 'exceptions.AttributeError'> 'NoneType' object has no attribute 'id'"
+p3
+sS'layer'
+p4
+S'/home/www-data/web2py/applications/emisv001/controllers/default.py'
+p5
+sS'code'
+p6
+S'# -*- coding: utf-8 -*-\n# this file is released under public domain and you can use without limitations\n\n#########################################################################\n## This is a sample controller\n## - index is the default action of any application\n## - user is required for authentication and authorization\n## - download is for downloading files uploaded in the db (does streaming)\n## - call exposes all registered services (none by default)\n#########################################################################\nfrom plugin_sqleditable.editable import SQLEDITABLE\nSQLEDITABLE.init()\nREPORT_TITLE = \'\'\n@auth.requires_membership(\'misofficer\')\ndef index():\n    grid=\'\'\n    form=SQLFORM.factory(Field(\'matric_number\', label=\'Find Matric Number\'))\n    if form.accepts(request.vars, session):\n        record=db.student(db.student.matric_no == form.vars.matric_number)\n        if record != None:\n            grid=SQLFORM(db.student, record)\n\n        else:\n            gride = None\n            response.flash = \'No record found!\'\n\n\n    return dict(form=form, grid=grid)\n\n@auth.requires_login()\ndef student_page():\n\n    return locals()\n\ndef examrecord_page():\n\n    return locals()\n\n@auth.requires_membership(\'registry\')\ndef addstudent():\n    form=SQLFORM(db.student)\n\n    if form.accepts(request.vars,session):\n        response.flash = "Student " + form.vars.matric_no + " added"\n        #redirect(URL(\'studentmanager\'))\n    elif form.errors:\n        response.flash = str(form.errors)\n\n    return dict(form=form)\n\n@auth.requires_membership(\'admin\')\ndef addschool():\n\n    form=SQLFORM.grid(db.school, csv=True)\n    return dict(form=form)\n\n@auth.requires_membership(\'hod\')\ndef department():\n\n    return locals()\n\n@auth.requires_membership(\'dean\')\ndef add_dept():\n    form=SQLFORM(db.department)\n    return locals()\n\n@auth.requires_membership(\'hod\')\ndef man_dept():\n    department = db.department(HOD=auth.user.id)\n    form=SQLFORM.grid(db.program.department == department.id, csv=False,\n                      maxtextlength=80\n\n                      )\n    return dict(form=form, department=department)\n\n@auth.requires_membership(\'hod\')\ndef add_course():\n    department = db.department(HOD=auth.user.id)\n    coursequery = db.course_subject.department == department.id\n    form=SQLFORM.grid(coursequery, csv=False, maxtextlength=100)\n\n    return dict(form=form)\n@auth.requires_membership(\'hod\')\ndef setcurriculum():\n    department = db.department(HOD=auth.user.id)\n    qry = db.course_curriculum.program.belongs(db.program.department==department.id)\n    form=SQLFORM.grid(qry, orderby=db.course_curriculum.semester)\n\n    return dict(form=form, department=department)\n\n@auth.requires_membership(\'registry\')\ndef studentmanager():\n    \n    form=SQLFORM.grid(db.student,\n                      user_signature=True,\n                      maxtextlength=50,\n                      formstyle =\'bootstrap3\',\n                      #fields=(\'matric_no\', \'surname\', \'service\', \'program\')\n\n                      ) #create=False, editable=True)\n    return locals()\n\n################### Account Section #################################################################\n\n@auth.requires_membership(\'account\')\ndef afitpay():\n    bankselect = SQLFORM.factory(\n                Field(\'method_of_pay\', requires=IS_IN_SET([\'BankTeller\', \'Etranzact\'])) #default=\'BankTeller\')\n                )\n\n    if bankselect.accepts(request.vars,session):\n        if bankselect.vars.method_of_pay == \'BankTeller\':\n            response.flash = \'Bank Details\'\n            redirect(URL(\'bankpay\'))\n\n        elif bankselect.vars.method_of_pay == \'Etranzact\':\n            response.flash = \'etranzact details\'\n            redirect(URL(\'epay\'))\n        else:\n            response.flash = \'error processing form inner\'\n\n    else:\n        response.flash = \'select mode of payment\'\n\n    return locals()\n\n@auth.requires_membership(\'account\')\ndef bankpay():\n    form = SQLFORM.grid(db.bank_pay,\n                        maxtextlength=50\n\n                        )\n    return locals()\n\n@auth.requires_membership(\'account\')\ndef epay():\n    form = SQLFORM.grid(db.etranzact,\n                        maxtextlength=50\n\n                        )\n    return locals()\n#####################Account Section End ########################\ndef load_curriculum(student_id, smester):\n    course=db.registered_course\n    curriculumdb = db.course_curriculum\n    curriculums = db(curriculumdb.program == db.student(id=student_id).program)(curriculumdb.semester == smester).select()\n    if curriculums:\n        for curriculum in curriculums:\n            course.insert(student=student_id, course_subject=curriculum.course_subject, credit_unit=curriculum.credit_unit, semester=curriculum.semester, sessions=CURRENT_SESSION, types=\'M\', status=\'CP\', scores=0.0)\n    else:\n        return None\n#load results into archresults from registered_course\ndef load_result(student_id):\n    course=db.archresult\n    resultdb = db.registered_course\n    results = db(resultdb.student == student_id).select()\n    if results:\n        for result in results:\n            course.insert(student=result.student, course_subject=result.course_subject, credit_unit=result.credit_unit, semester=result.semester, sessions=result.sessions, types=result.types, status=result.status, scores=result.scores, grade=result.grade, wp=result.wp, Wgp=result.Wgp, remark=result.remark)\n    else:\n        return None\n@auth.requires_membership(\'hod\')\ndef load_main_courses():\n    department = db.department(HOD=auth.user.id) or redirect(URL(\'reportnone\'))\n    form=SQLFORM.factory(Field(\'program\', \'reference program\', requires=IS_IN_DB(db(db.program.department==department.id), db.program.id, \'%(name)s %(classification)s %(the_option)s\')),\n                         Field(\'semester\', requires=IS_IN_SET([\'1st\', \'2nd\', \'3rd\', \'4th\']))\n\n                         )\n    #progs = db(db.program(id=form.vars.program).select())\n\n    if form.process().accepts:\n        studentss = db(db.student.program == form.vars.program).select()\n        enrolleds = db(db.sessions_enrol.student.belongs(studentss)).select()\n\n        for enrolled in enrolleds:\n            load_curriculum(enrolled.student, form.vars.semester)\n\n    else:\n        response.flash = \'error\'\n\n    return dict(form=form, department=department)\n\ndef updatescore(regno,subject ):\n    stdid = db.student(matric_no = regno).id\n    subid = db.course_subject(code=subject).id\n    \n    getresult = db(db.registered_course.student == stdid)&(db.registered_course.course_subject == subid)\n    \n    #return None\n    pass\n\n@auth.requires_membership(\'hod\')\ndef updatescores():\n    department = db.department(HOD=auth.user.id) or redirect(URL(\'reportnone\'))\n    form=SQLFORM.factory(Field(\'program\', \'reference program\', requires=IS_IN_DB(db(db.program.department==department.id), db.program.id, \'%(name)s %(classification)s %(the_option)s\')))\n    if form.process().accepts:\n        studentss = db(db.student.program == form.vars.program).select()\n        raw_matrics = db(db.result_raw.student.belongs(studentss))._select(db.result_raw.student)\n        reg_matrics = db(db.registered_course.student.belongs(raw_matrics)).select()\n        #raw_matric = db(db\n        #for matric in reg_matrics:\n\n\n\n\n@auth.requires_membership(\'registry\')\ndef loadresults():\n    form=SQLFORM.factory(Field(\'student\', \'reference student\', requires=IS_IN_DB(db, db.student.id, \'%(matric_no)s\'))) #widget=SQLFORM.widgets.string))\n    #progs = db(db.program(id=form.vars.program).select())\n\n    if form.process().accepts:\n        load_result(form.vars.student)\n\n\n    else:\n        response.flash = \'error\'\n\n    return dict(form=form)\n\n\n@auth.requires_membership(\'registry\')\ndef add_result():\n\n    form = SQLFORM(db.registered_course)\n    if form.accepts(request.vars,session):\n       response.flash = \'result added\'\n    return dict(editable=form)\n\n\n############ Helper Funcations ###############################\n\n\n############### End Helper Function #############################\n\n\ndef checkmatric(form):\n    query = db.student.matric_no == form.vars.matric_no\n    if query == None:\n        form.errors.matric_no = \'Number do not exist\'\n\n    else:\n        redirect(URL(\'reportnone\'))\n\n\n@auth.requires_membership(\'hod\')\ndef findresult():\n    #REPORT-TITLE =\n    department = db.department(HOD=auth.user.id)\n    prgm = db(db.program.department == department.id).select()\n    inputbox = SQLFORM.factory(Field(\'matric_no\', \'reference student\', requires=IS_IN_DB(db(db.student.program.belongs(prgm)), db.student.matric_no)),\n                               #Field(\'semester\', requires=IS_IN_SET([\'1st\', \'2nd\', \'3rd\', \'4th\'])),\n                               Field(\'sessions\', \'reference school_session\', requires=IS_IN_DB(db,db.school_session.name, \'%(name)s\'))\n\n                               )\n    if inputbox.process().accepted:\n\n        record = db.student(matric_no = inputbox.vars.matric_no) or redirect(URL(\'reportnone\'))\n        #sessn_record=db(db.school_session.name == inputbox.vars.sessions).select().first() or redirect(URL(\'default\',\'reportnone\'))\n        sessn_record = db.school_session(name=inputbox.vars.sessions) or redirect(URL(\'default\',\'reportnone\'))\n        redirect(URL(\'showresults\', vars={\'id_no\':record.id,\'sessn\':inputbox.vars.sessions, \'sessn_id\':sessn_record.id, \'rpt\': \'RESULT SLIP\'}))\n    return dict(inputbox=inputbox)\n\n@auth.requires_membership(\'hod\')\ndef process_trans():\n    form = SQLFORM.factory(Field(\'matric_no\', requires=IS_NOT_EMPTY()),\n                               Field(\'sessions\', \'reference school_session\', requires=IS_IN_DB(db,db.school_session.name, \'%(name)s\' ))\n\n                               )\n    if form.process().accepted:\n        record = db.student(matric_no = form.vars.matric_no) or redirect(URL(\'reportnone\'))\n        sessn_record = db.school_session(name=form.vars.sessions) or redirect(URL(\'default\',\'reportnone\'))\n        redirect(URL(\'showtranscript\', vars={\'id_no\':record.id,\'sessn\':form.vars.sessions, \'sessn_id\':sessn_record.id, \'rpt\':\'TRANSCRIPT\'}))\n\n    return dict(form=form)\n\n@auth.requires_membership(\'registry\')\ndef showresults():\n\n    query = ((db.registered_course.student==request.vars.id_no) & (db.registered_course.sessions==request.vars.sessn_id))\n    form = SQLFORM.grid(query, orderby=db.registered_course.semester) #crud.select(db.registered_course, query)\n\n    return dict(form = form)\n\ndef showtranscript():\n    query = db.archresult.student==request.vars.id_no #& (db.registered_course.sessions==request.vars.sessn_id))\n    form = SQLFORM.grid(query, orderby=db.archresult.semester)\n\n    return dict(form=form)\n\n#@auth.requires_membership(\'registry\')\ndef reportnone():\n    message="Information does not exist"\n\n    return locals() #dict(message=message)\n\n\n#Define my apis here\n@request.restful()\ndef api():\n    response.view = \'generic.\'+request.extension\n    def GET(*args,**vars):\n        patterns = \'auto\'\n        parser = db.parse_as_rest(patterns,args,vars)\n        if parser.status == 200:\n            return dict(content=parser.response)\n        else:\n            raise HTTP(parser.status,parser.error)\n    def POST(table_name,**vars):\n        return db[table_name].validate_and_insert(**vars)\n    return locals()\n\n\ndef user():\n    """\n    exposes:\n    http://..../[app]/default/user/login\n    http://..../[app]/default/user/logout\n    http://..../[app]/default/user/register\n    http://..../[app]/default/user/profile\n    http://..../[app]/default/user/retrieve_password\n    http://..../[app]/default/user/change_password\n    http://..../[app]/default/user/manage_users (requires membership in\n    use @auth.requires_login()\n        @auth.requires_membership(\'group name\')\n        @auth.requires_permission(\'read\',\'table name\',record_id)\n    to decorate functions that need access control\n    """\n    return dict(form=auth())\n\n@cache.action()\ndef download():\n    """\n    allows downloading of uploaded files\n    http://..../[app]/default/download/[filename]\n    """\n    return response.download(request, db)\n\n\ndef call():\n    """\n    exposes services. for example:\n    http://..../[app]/default/call/jsonrpc\n    decorate with @services.jsonrpc the functions to expose\n    supports xml, json, xmlrpc, jsonrpc, amfrpc, rss, csv\n    """\n    return service()\n\n\n@auth.requires_signature()\ndef data():\n    """\n    http://..../[app]/default/data/tables\n    http://..../[app]/default/data/create/[table]\n    http://..../[app]/default/data/read/[table]/[id]\n    http://..../[app]/default/data/update/[table]/[id]\n    http://..../[app]/default/data/delete/[table]/[id]\n    http://..../[app]/default/data/select/[table]\n    http://..../[app]/default/data/search/[table]\n    but URLs must be signed, i.e. linked with\n      A(\'table\',_href=URL(\'data/tables\',user_signature=True))\n    or with the signed load operator\n      LOAD(\'default\',\'data.load\',args=\'tables\',ajax=True,user_signature=True)\n    """\n    return dict(form=crud())\n\nresponse._vars=response._caller(findresult)\n'
+p7
+sS'snapshot'
+p8
+(dp9
+S'exception'
+p10
+(dp11
+S'__hash__'
+p12
+S"<method-wrapper '__hash__' of exceptions.AttributeError object>"
+p13
+sS'__setattr__'
+p14
+S"<method-wrapper '__setattr__' of exceptions.AttributeError object>"
+p15
+sS'__reduce_ex__'
+p16
+S'<built-in method __reduce_ex__ of exceptions.AttributeError object>'
+p17
+sS'__getslice__'
+p18
+S"<method-wrapper '__getslice__' of exceptions.AttributeError object>"
+p19
+sS'__getitem__'
+p20
+S"<method-wrapper '__getitem__' of exceptions.AttributeError object>"
+p21
+sS'__setstate__'
+p22
+S'<built-in method __setstate__ of exceptions.AttributeError object>'
+p23
+sS'args'
+p24
+S'("\'NoneType\' object has no attribute \'id\'",)'
+p25
+sS'__reduce__'
+p26
+S'<built-in method __reduce__ of exceptions.AttributeError object>'
+p27
+sS'__str__'
+p28
+S"<method-wrapper '__str__' of exceptions.AttributeError object>"
+p29
+sS'__format__'
+p30
+S'<built-in method __format__ of exceptions.AttributeError object>'
+p31
+sS'__getattribute__'
+p32
+S"<method-wrapper '__getattribute__' of exceptions.AttributeError object>"
+p33
+sS'__class__'
+p34
+S"<type 'exceptions.AttributeError'>"
+p35
+sS'__unicode__'
+p36
+S'<built-in method __unicode__ of exceptions.AttributeError object>'
+p37
+sS'__delattr__'
+p38
+S"<method-wrapper '__delattr__' of exceptions.AttributeError object>"
+p39
+sS'__subclasshook__'
+p40
+S'<built-in method __subclasshook__ of type object>'
+p41
+sS'__repr__'
+p42
+S"<method-wrapper '__repr__' of exceptions.AttributeError object>"
+p43
+sS'__dict__'
+p44
+S'{}'
+p45
+sS'__sizeof__'
+p46
+S'<built-in method __sizeof__ of exceptions.AttributeError object>'
+p47
+sS'__doc__'
+p48
+S"'Attribute not found.'"
+p49
+sS'__init__'
+p50
+S"<method-wrapper '__init__' of exceptions.AttributeError object>"
+p51
+sS'__new__'
+p52
+S'<built-in method __new__ of type object>'
+p53
+ssS'evalue'
+p54
+S"'NoneType' object has no attribute 'id'"
+p55
+sS'request'
+p56
+cgluon.html
+XML_unpickle
+p57
+(S's\xb2P\x00\x00<div><table><tr><td style="font-weight:bold;vertical-align:top;">ajax</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">application</td><td style="vertical-align:top;">:</td><td><div>emisv001</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">args</td><td style="vertical-align:top;">:</td><td><div><table></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">cid</td><td style="vertical-align:top;">:</td><td><div>None</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">client</td><td style="vertical-align:top;">:</td><td><div>41.206.11.195</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">controller</td><td style="vertical-align:top;">:</td><td><div>default</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">cookies</td><td style="vertical-align:top;">:</td><td><div><table><tr><td style="font-weight:bold;vertical-align:top;">session_id_admin</td><td style="vertical-align:top;">:</td><td><div>41.206.11.195-79d69a84-4404-4075-b78b-96ca48daf884<table><tr><td style="font-weight:bold;vertical-align:top;">comment</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">domain</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">expires</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">httponly</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">max-age</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">path</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">secure</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">version</td><td style="vertical-align:top;">:</td><td><div></div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_id_emisv001</td><td style="vertical-align:top;">:</td><td><div>41.206.11.195-363135c0-e429-4cce-927f-d109edd5edcf<table><tr><td style="font-weight:bold;vertical-align:top;">comment</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">domain</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">expires</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">httponly</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">max-age</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">path</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">secure</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">version</td><td style="vertical-align:top;">:</td><td><div></div></td></tr></table></div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">env</td><td style="vertical-align:top;">:</td><td><div><table><tr><td style="font-weight:bold;vertical-align:top;">CONTENT_LENGTH</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">CONTENT_TYPE</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">DOCUMENT_ROOT</td><td style="vertical-align:top;">:</td><td><div>/usr/share/nginx/html</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">HTTP_ACCEPT</td><td style="vertical-align:top;">:</td><td><div>text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">HTTP_ACCEPT_ENCODING</td><td style="vertical-align:top;">:</td><td><div>gzip, deflate, sdch</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">HTTP_ACCEPT_LANGUAGE</td><td style="vertical-align:top;">:</td><td><div>en-US,en;q=0.8</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">HTTP_CONNECTION</td><td style="vertical-align:top;">:</td><td><div>keep-alive</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">HTTP_COOKIE</td><td style="vertical-align:top;">:</td><td><div>session_id_admin=41.206.11.195-79d69a84-4404-4075-b78b-96ca48daf884; session_id_emisv001=41.206.11.195-363135c0-e429-4cce-927f-d109edd5edcf</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">HTTP_HOST</td><td style="vertical-align:top;">:</td><td><div>ec2-50-112-169-0.us-west-2.compute.amazonaws.com</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">HTTP_REFERER</td><td style="vertical-align:top;">:</td><td><div>https://ec2-50-112-169-0.us-west-2.compute.amazonaws.com/emisv001/default/student_page</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">HTTP_USER_AGENT</td><td style="vertical-align:top;">:</td><td><div>Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">PATH_INFO</td><td style="vertical-align:top;">:</td><td><div>/emisv001/default/findresult</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">QUERY_STRING</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">REMOTE_ADDR</td><td style="vertical-align:top;">:</td><td><div>41.206.11.195</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">REMOTE_PORT</td><td style="vertical-align:top;">:</td><td><div>20466</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">REQUEST_METHOD</td><td style="vertical-align:top;">:</td><td><div>GET</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">REQUEST_URI</td><td style="vertical-align:top;">:</td><td><div>/emisv001/default/findresult</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">SERVER_NAME</td><td style="vertical-align:top;">:</td><td><div>ip-172-31-41-75</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">SERVER_PORT</td><td style="vertical-align:top;">:</td><td><div>443</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">SERVER_PROTOCOL</td><td style="vertical-align:top;">:</td><td><div>HTTP/1.1</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">SERVER_SOFTWARE</td><td style="vertical-align:top;">:</td><td><div>nginx/1.4.6</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">UWSGI_SCHEME</td><td style="vertical-align:top;">:</td><td><div>https</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">app_folders</td><td style="vertical-align:top;">:</td><td><div>set([&#x27;/home/www-data/web2py/applications/emis/&#x27;, &#x27;/home/www-data/web2py/applications/emisv001/&#x27;, &#x27;/home/www-data/web2py/applications/welcome/&#x27;, &#x27;/home/www-data/web2py/applications/admin/&#x27;, &#x27;/home/www-data/web2py/applications/armis/&#x27;, &#x27;/home/www-data/web2py/applications/eduman/&#x27;])</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">applications_parent</td><td style="vertical-align:top;">:</td><td><div>/home/www-data/web2py</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">content_length</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">content_type</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">db_sessions</td><td style="vertical-align:top;">:</td><td><div>set([])</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">debugging</td><td style="vertical-align:top;">:</td><td><div>True</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">document_root</td><td style="vertical-align:top;">:</td><td><div>/usr/share/nginx/html</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">gluon_parent</td><td style="vertical-align:top;">:</td><td><div>/home/www-data/web2py</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">http_accept</td><td style="vertical-align:top;">:</td><td><div>text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">http_accept_encoding</td><td style="vertical-align:top;">:</td><td><div>gzip, deflate, sdch</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">http_accept_language</td><td style="vertical-align:top;">:</td><td><div>en-US,en;q=0.8</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">http_connection</td><td style="vertical-align:top;">:</td><td><div>keep-alive</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">http_cookie</td><td style="vertical-align:top;">:</td><td><div>session_id_admin=41.206.11.195-79d69a84-4404-4075-b78b-96ca48daf884; session_id_emisv001=41.206.11.195-363135c0-e429-4cce-927f-d109edd5edcf</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">http_host</td><td style="vertical-align:top;">:</td><td><div>ec2-50-112-169-0.us-west-2.compute.amazonaws.com</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">http_referer</td><td style="vertical-align:top;">:</td><td><div>https://ec2-50-112-169-0.us-west-2.compute.amazonaws.com/emisv001/default/student_page</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">http_user_agent</td><td style="vertical-align:top;">:</td><td><div>Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_jython</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_pypy</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_source</td><td style="vertical-align:top;">:</td><td><div>True</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">local_hosts</td><td style="vertical-align:top;">:</td><td><div><table><tr><td><div>ip-172-31-41-75</div></td></tr><tr><td><div>ip-172-31-41-75.us-west-2.compute.internal</div></td></tr><tr><td><div>::ffff:127.0.0.1</div></td></tr><tr><td><div>::1</div></td></tr><tr><td><div>172.31.41.75</div></td></tr><tr><td><div>127.0.0.1</div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">path_info</td><td style="vertical-align:top;">:</td><td><div>/emisv001/default/findresult</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">query_string</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">remote_addr</td><td style="vertical-align:top;">:</td><td><div>41.206.11.195</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">remote_port</td><td style="vertical-align:top;">:</td><td><div>20466</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">request_method</td><td style="vertical-align:top;">:</td><td><div>GET</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">request_uri</td><td style="vertical-align:top;">:</td><td><div>/emisv001/default/findresult</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">server_name</td><td style="vertical-align:top;">:</td><td><div>ip-172-31-41-75</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">server_port</td><td style="vertical-align:top;">:</td><td><div>443</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">server_protocol</td><td style="vertical-align:top;">:</td><td><div>HTTP/1.1</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">server_software</td><td style="vertical-align:top;">:</td><td><div>nginx/1.4.6</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">uwsgi.node</td><td style="vertical-align:top;">:</td><td><div>ip-172-31-41-75</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">uwsgi.version</td><td style="vertical-align:top;">:</td><td><div>2.0.6</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">uwsgi_node</td><td style="vertical-align:top;">:</td><td><div>ip-172-31-41-75</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">uwsgi_scheme</td><td style="vertical-align:top;">:</td><td><div>https</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">uwsgi_version</td><td style="vertical-align:top;">:</td><td><div>2.0.6</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">web2py_path</td><td style="vertical-align:top;">:</td><td><div>/home/www-data/web2py</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">web2py_version</td><td style="vertical-align:top;">:</td><td><div>2.10.4-stable+timestamp.2015.04.26.15.11.54</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi.errors</td><td style="vertical-align:top;">:</td><td><div>&lt;open file &#x27;wsgi_errors&#x27;, mode &#x27;w&#x27; at 0x7fcb4ecdbb70&gt;</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi.file_wrapper</td><td style="vertical-align:top;">:</td><td><div>&lt;built-in function uwsgi_sendfile&gt;</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi.input</td><td style="vertical-align:top;">:</td><td><div>&lt;uwsgi._Input object at 0x7fcb4de734b0&gt;</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi.multiprocess</td><td style="vertical-align:top;">:</td><td><div>True</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi.multithread</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi.run_once</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi.url_scheme</td><td style="vertical-align:top;">:</td><td><div>https</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi.version</td><td style="vertical-align:top;">:</td><td><div><table><tr><td><div>1</div></td></tr><tr><td><div>0</div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi_errors</td><td style="vertical-align:top;">:</td><td><div>&lt;open file &#x27;wsgi_errors&#x27;, mode &#x27;w&#x27; at 0x7fcb4ecdbb70&gt;</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi_file_wrapper</td><td style="vertical-align:top;">:</td><td><div>&lt;built-in function uwsgi_sendfile&gt;</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi_input</td><td style="vertical-align:top;">:</td><td><div>&lt;uwsgi._Input object at 0x7fcb4de734b0&gt;</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi_multiprocess</td><td style="vertical-align:top;">:</td><td><div>True</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi_multithread</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi_run_once</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi_url_scheme</td><td style="vertical-align:top;">:</td><td><div>https</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi_version</td><td style="vertical-align:top;">:</td><td><div><table><tr><td><div>1</div></td></tr><tr><td><div>0</div></td></tr></table></div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">extension</td><td style="vertical-align:top;">:</td><td><div>html</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">folder</td><td style="vertical-align:top;">:</td><td><div>/home/www-data/web2py/applications/emisv001/</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">function</td><td style="vertical-align:top;">:</td><td><div>findresult</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">global_settings</td><td style="vertical-align:top;">:</td><td><div><table><tr><td style="font-weight:bold;vertical-align:top;">app_folders</td><td style="vertical-align:top;">:</td><td><div>set([&#x27;/home/www-data/web2py/applications/emis/&#x27;, &#x27;/home/www-data/web2py/applications/emisv001/&#x27;, &#x27;/home/www-data/web2py/applications/welcome/&#x27;, &#x27;/home/www-data/web2py/applications/admin/&#x27;, &#x27;/home/www-data/web2py/applications/armis/&#x27;, &#x27;/home/www-data/web2py/applications/eduman/&#x27;])</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">applications_parent</td><td style="vertical-align:top;">:</td><td><div>/home/www-data/web2py</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">db_sessions</td><td style="vertical-align:top;">:</td><td><div>set([])</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">debugging</td><td style="vertical-align:top;">:</td><td><div>True</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">gluon_parent</td><td style="vertical-align:top;">:</td><td><div>/home/www-data/web2py</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_jython</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_pypy</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_source</td><td style="vertical-align:top;">:</td><td><div>True</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">local_hosts</td><td style="vertical-align:top;">:</td><td><div><table><tr><td><div>ip-172-31-41-75</div></td></tr><tr><td><div>ip-172-31-41-75.us-west-2.compute.internal</div></td></tr><tr><td><div>::ffff:127.0.0.1</div></td></tr><tr><td><div>::1</div></td></tr><tr><td><div>172.31.41.75</div></td></tr><tr><td><div>127.0.0.1</div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">web2py_version</td><td style="vertical-align:top;">:</td><td><div>2.10.4-stable+timestamp.2015.04.26.15.11.54</div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_https</td><td style="vertical-align:top;">:</td><td><div>True</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_local</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_restful</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_sheduler</td><td style="vertical-align:top;">:</td><td><div>None</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_shell</td><td style="vertical-align:top;">:</td><td><div>None</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">now</td><td style="vertical-align:top;">:</td><td><div>datetime.datetime(2015, 5, 15, 16, 24, 48, 383862)</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">raw_args</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">raw_extension</td><td style="vertical-align:top;">:</td><td><div>None</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">url</td><td style="vertical-align:top;">:</td><td><div>/emisv001/default/findresult</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">utcnow</td><td style="vertical-align:top;">:</td><td><div>datetime.datetime(2015, 5, 15, 16, 24, 48, 383880)</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">uuid</td><td style="vertical-align:top;">:</td><td><div>emisv001/41.206.11.195.2015-05-15.16-24-48.ecf0fadc-f33b-416e-94b8-a21e4b01f08d</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi</td><td style="vertical-align:top;">:</td><td><div>&lt;gluon.main.LazyWSGI object at 0x7fcb4ccfe650&gt;</div></td></tr></table></div>'
+tRp58
+sS'frames'
+p59
+(lp60
+(dp61
+S'file'
+p62
+S'/home/www-data/web2py/gluon/restricted.py'
+p63
+sS'dump'
+p64
+(dp65
+S'environment'
+p66
+S"{'A': <class 'gluon.html.A'>, 'ANY_OF': <class 'gluon.validators.ANY_OF'>, 'ASSIGNJS': <function ASSIGNJS>, 'Auth': <class 'gluon.tools.Auth'>, 'B': <class 'gluon.html.B'>, 'BEAUTIFY': <class 'gluon.html.BEAUTIFY'>, 'BODY': <class 'gluon.html.BODY'>, 'BR': <class 'gluon.html.BR'>, 'BUTTON': <class 'gluon.html.BUTTON'>, 'CAT': <class 'gluon.html.CAT'>, ...}"
+p67
+sS'ccode'
+p68
+S'<code object <module> at 0x7fcb4dc0bd30, file "/...ations/emisv001/controllers/default.py", line 11>'
+p69
+ssS'lnum'
+p70
+I227
+sS'lines'
+p71
+(dp72
+I224
+S'            ccode = code'
+p73
+sI225
+S'        else:'
+p74
+sI226
+S'            ccode = compile2(code, layer)'
+p75
+sI227
+S'        exec ccode in environment'
+p76
+sI228
+S'    except HTTP:'
+p77
+sI229
+S'        raise'
+p78
+sI230
+S'    except RestrictedError:'
+p79
+sI231
+S'        # do not encapsulate (obfuscate) the original RestrictedError'
+p80
+sI222
+S'    try:'
+p81
+sI223
+S'        if isinstance(code, types.CodeType):'
+p82
+ssS'call'
+p83
+S"(code='# -*- coding: utf-8 -*-\\n# this file is released ...())\\n\\nresponse._vars=response._caller(findresult)\\n', environment={'A': <class 'gluon.html.A'>, 'ANY_OF': <class 'gluon.validators.ANY_OF'>, 'ASSIGNJS': <function ASSIGNJS>, 'Auth': <class 'gluon.tools.Auth'>, 'B': <class 'gluon.html.B'>, 'BEAUTIFY': <class 'gluon.html.BEAUTIFY'>, 'BODY': <class 'gluon.html.BODY'>, 'BR': <class 'gluon.html.BR'>, 'BUTTON': <class 'gluon.html.BUTTON'>, 'CAT': <class 'gluon.html.CAT'>, ...}, layer='/home/www-data/web2py/applications/emisv001/controllers/default.py')"
+p84
+sS'func'
+p85
+S'restricted'
+p86
+sa(dp87
+g62
+S'/home/www-data/web2py/applications/emisv001/controllers/default.py'
+p88
+sg64
+(dp89
+sg70
+I366
+sg71
+(dp90
+I355
+S'    http://..../[app]/default/data/update/[table]/[id]'
+p91
+sI356
+S'    http://..../[app]/default/data/delete/[table]/[id]'
+p92
+sI357
+S'    http://..../[app]/default/data/select/[table]'
+p93
+sI358
+S'    http://..../[app]/default/data/search/[table]'
+p94
+sI359
+S'    but URLs must be signed, i.e. linked with'
+p95
+sI360
+S"      A('table',_href=URL('data/tables',user_signature=True))"
+p96
+sI361
+S'    or with the signed load operator'
+p97
+sI362
+S"      LOAD('default','data.load',args='tables',ajax=True,user_signature=True)"
+p98
+sI363
+S'    """'
+p99
+sI364
+S'    return dict(form=crud())'
+p100
+ssg83
+S'()'
+p101
+sg85
+S'<module>'
+p102
+sa(dp103
+g62
+S'/home/www-data/web2py/applications/emisv001/modules/plugin_sqleditable/editable.py'
+p104
+sg64
+(dp105
+S'r'
+S'undefined'
+p106
+sS'func'
+p107
+S'<function findresult>'
+p108
+ssg70
+I394
+sg71
+(dp109
+I389
+S'        self.next = None'
+p110
+sI390
+S''
+sI391
+S'    @staticmethod'
+p111
+sI392
+S'    def init():'
+p112
+sI393
+S'        def extract(func):'
+p113
+sI394
+S'            r=func()'
+p114
+sI395
+S'            if request.ajax:'
+p115
+sI396
+S'                if isinstance(r, dict):'
+p116
+sI397
+S'                    for v in r.values():'
+p117
+sI398
+S'                        if isinstance(v, EDITABLE):'
+p118
+ssg83
+S'(func=<function findresult>)'
+p119
+sg85
+S'extract'
+p120
+sa(dp121
+g62
+S'/home/www-data/web2py/gluon/tools.py'
+p122
+sg64
+(dp123
+S'action'
+p124
+S'<function findresult>'
+p125
+sS'a'
+S'()'
+p126
+sS'b'
+g45
+ssg70
+I3440
+sg71
+(dp127
+I3435
+S'                    flag = condition'
+p128
+sI3436
+S'                if not flag:'
+p129
+sI3437
+S'                    current.session.flash = self.messages.access_denied'
+p130
+sI3438
+S'                    return call_or_redirect('
+p131
+sI3439
+S'                        self.settings.on_failed_authorization)'
+p132
+sI3440
+S'                return action(*a, **b)'
+p133
+sI3441
+S'            f.__doc__ = action.__doc__'
+p134
+sI3442
+S'            f.__name__ = action.__name__'
+p135
+sI3443
+S'            f.__dict__.update(action.__dict__)'
+p136
+sI3444
+S'            return f'
+p137
+ssg83
+S'(*a=(), **b={})'
+p138
+sg85
+S'f'
+sa(dp139
+g62
+S'/home/www-data/web2py/applications/emisv001/controllers/default.py'
+p140
+sg64
+(dp141
+S'prgm'
+p142
+g106
+sS'db.program.department'
+p143
+S'<pydal.objects.Field object>'
+p144
+sS'department'
+p145
+S'None'
+p146
+sS'db.program'
+p147
+S'<Table program (id,department,classification,the...e,created_on,created_by,modified_on,modified_by)>'
+p148
+sS'global db'
+p149
+S'<DAL uri="sqlite://storage.sqlite">'
+p150
+sS'department.id'
+p151
+g106
+ssg70
+I249
+sg71
+(dp152
+I244
+S''
+sI245
+S"@auth.requires_membership('hod')"
+p153
+sI246
+S'def findresult():'
+p154
+sI247
+S'    #REPORT-TITLE ='
+p155
+sI248
+S'    department = db.department(HOD=auth.user.id)'
+p156
+sI249
+S'    prgm = db(db.program.department == department.id).select()'
+p157
+sI250
+S"    inputbox = SQLFORM.factory(Field('matric_no', 'reference student', requires=IS_IN_DB(db(db.student.program.belongs(prgm)), db.student.matric_no)),"
+p158
+sI251
+S"                               #Field('semester', requires=IS_IN_SET(['1st', '2nd', '3rd', '4th'])),"
+p159
+sI252
+S"                               Field('sessions', 'reference school_session', requires=IS_IN_DB(db,db.school_session.name, '%(name)s'))"
+p160
+sI253
+S''
+ssg83
+S'()'
+p161
+sg85
+S'findresult'
+p162
+sasS'pyver'
+p163
+S'Python 2.7.6: /usr/local/bin/uwsgi (prefix: /usr)'
+p164
+sS'session'
+p165
+g57
+(S's\xef\n\x00\x00<div><table><tr><td style="font-weight:bold;vertical-align:top;">auth</td><td style="vertical-align:top;">:</td><td><div><table><tr><td style="font-weight:bold;vertical-align:top;">expiration</td><td style="vertical-align:top;">:</td><td><div>3600</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">hmac_key</td><td style="vertical-align:top;">:</td><td><div>9e9a0f0a-37bf-4abf-964e-879c9c864724</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">last_visit</td><td style="vertical-align:top;">:</td><td><div>datetime.datetime(2015, 5, 15, 16, 20, 33, 871129)</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">remember_me</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">user</td><td style="vertical-align:top;">:</td><td><div><table><tr><td style="font-weight:bold;vertical-align:top;">email</td><td style="vertical-align:top;">:</td><td><div>afitwebsite@gmail.com</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">first_name</td><td style="vertical-align:top;">:</td><td><div>Samuel</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">id</td><td style="vertical-align:top;">:</td><td><div>8L</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">last_name</td><td style="vertical-align:top;">:</td><td><div>Asogwa</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">registration_id</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">registration_key</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">reset_password_key</td><td style="vertical-align:top;">:</td><td><div></div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">user_groups</td><td style="vertical-align:top;">:</td><td><div><table><tr><td style="font-weight:bold;vertical-align:top;">1</td><td style="vertical-align:top;">:</td><td><div>registry</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">2</td><td style="vertical-align:top;">:</td><td><div>misofficer</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">4</td><td style="vertical-align:top;">:</td><td><div>admin</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">5</td><td style="vertical-align:top;">:</td><td><div>guest</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">6</td><td style="vertical-align:top;">:</td><td><div>hod</div></td></tr></table></div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">flash</td><td style="vertical-align:top;">:</td><td><div>None</div></td></tr></table></div>'
+tRp166
+sS'etype'
+p167
+S"<type 'exceptions.AttributeError'>"
+p168
+sS'date'
+p169
+S'Fri May 15 16:24:48 2015'
+p170
+sS'response'
+p171
+g57
+(S'sP!\x00\x00<div><table><tr><td style="font-weight:bold;vertical-align:top;">body</td><td style="vertical-align:top;">:</td><td><div>&lt;cStringIO.StringO object at 0x7fcb4cce5b58&gt;</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">cookies</td><td style="vertical-align:top;">:</td><td><div><table><tr><td style="font-weight:bold;vertical-align:top;">session_id_emisv001</td><td style="vertical-align:top;">:</td><td><div>41.206.11.195-363135c0-e429-4cce-927f-d109edd5edcf<table><tr><td style="font-weight:bold;vertical-align:top;">comment</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">domain</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">expires</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">httponly</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">max-age</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">path</td><td style="vertical-align:top;">:</td><td><div>/</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">secure</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">version</td><td style="vertical-align:top;">:</td><td><div></div></td></tr></table></div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">delimiters</td><td style="vertical-align:top;">:</td><td><div><table><tr><td><div>{{</div></td></tr><tr><td><div>}}</div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">files</td><td style="vertical-align:top;">:</td><td><div><table><tr><td><div>/emisv001/static/plugin_sqleditable/js/mindmup-editabletable.js</div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">flash</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">form_label_separator</td><td style="vertical-align:top;">:</td><td><div>: </div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">formstyle</td><td style="vertical-align:top;">:</td><td><div>table3cols</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">generic_patterns</td><td style="vertical-align:top;">:</td><td><div><table></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">google_analytics_id</td><td style="vertical-align:top;">:</td><td><div>None</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">headers</td><td style="vertical-align:top;">:</td><td><div><table><tr><td style="font-weight:bold;vertical-align:top;">X-Powered-By</td><td style="vertical-align:top;">:</td><td><div>web2py</div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">logo</td><td style="vertical-align:top;">:</td><td><div><a class="brand" href="http://www.afit.edu.ng"><b>web<span>2</span>py</b>&trade;&nbsp;</a></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">menu</td><td style="vertical-align:top;">:</td><td><div><table><tr><td><div><table><tr><td><div><span class="list-group-item list-group-item">Home</span></div></td></tr><tr><td><div>False</div></td></tr><tr><td><div>/emisv001/default/index</div></td></tr><tr><td><div><table></table></div></td></tr></table></div></td></tr><tr><td><div><table><tr><td><div><span class="list-group-item list-group-item">Students</span></div></td></tr><tr><td><div>False</div></td></tr><tr><td><div>/emisv001/default/student_page</div></td></tr></table></div></td></tr><tr><td><div><table><tr><td><div><span class="list-group-item list-group-item">Departments</span></div></td></tr><tr><td><div>False</div></td></tr><tr><td><div>/emisv001/default/department</div></td></tr></table></div></td></tr><tr><td><div><table><tr><td><div><span class="list-group-item list-group-item">Schools</span></div></td></tr><tr><td><div>False</div></td></tr><tr><td><div>#</div></td></tr></table></div></td></tr><tr><td><div><table><tr><td><div><span class="list-group-item list-group-item">Account</span></div></td></tr><tr><td><div>False</div></td></tr><tr><td><div>/emisv001/default/afitpay</div></td></tr></table></div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">meta</td><td style="vertical-align:top;">:</td><td><div><table><tr><td style="font-weight:bold;vertical-align:top;">author</td><td style="vertical-align:top;">:</td><td><div>Henry Ajere &lt;henro.ajere@gmail.com&gt;</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">generator</td><td style="vertical-align:top;">:</td><td><div>Web2py Web Framework</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">keywords</td><td style="vertical-align:top;">:</td><td><div>web2py, python, framework</div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">models_to_run</td><td style="vertical-align:top;">:</td><td><div><table><tr><td><div>^\\w+\\.py$</div></td></tr><tr><td><div>^default/\\w+\\.py$</div></td></tr><tr><td><div>^default/findresult/\\w+\\.py$</div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">postprocessing</td><td style="vertical-align:top;">:</td><td><div><table></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_client</td><td style="vertical-align:top;">:</td><td><div>41.206.11.195</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_cookie_compression_level</td><td style="vertical-align:top;">:</td><td><div>None</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_cookie_expires</td><td style="vertical-align:top;">:</td><td><div>None</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_cookie_key</td><td style="vertical-align:top;">:</td><td><div>None</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_data_name</td><td style="vertical-align:top;">:</td><td><div>session_data_emisv001</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_file</td><td style="vertical-align:top;">:</td><td><div>&lt;open file &#x27;/home/www-data/web2py/applications/emisv001/sessions/17a/152/41.206.11.195-363135c0-e429-4cce-927f-d109edd5edcf&#x27;, mode &#x27;rb+&#x27; at 0x7fcb4ddced20&gt;</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_filename</td><td style="vertical-align:top;">:</td><td><div>/home/www-data/web2py/applications/emisv001/sessions/41.206.11.195-363135c0-e429-4cce-927f-d109edd5edcf</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_hash</td><td style="vertical-align:top;">:</td><td><div>a93b6bbb8a33a5f667fb1de1e0378775</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_id</td><td style="vertical-align:top;">:</td><td><div>41.206.11.195-363135c0-e429-4cce-927f-d109edd5edcf</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_id_name</td><td style="vertical-align:top;">:</td><td><div>session_id_emisv001</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_locked</td><td style="vertical-align:top;">:</td><td><div>True</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_masterapp</td><td style="vertical-align:top;">:</td><td><div>emisv001</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_new</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_storage_type</td><td style="vertical-align:top;">:</td><td><div>file</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">status</td><td style="vertical-align:top;">:</td><td><div>200</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">subtitle</td><td style="vertical-align:top;">:</td><td><div>Education Management Information System</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">title</td><td style="vertical-align:top;">:</td><td><div>Airforce Institute of Technology (A.F.I.T)</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">view</td><td style="vertical-align:top;">:</td><td><div>default/findresult.html</div></td></tr></table></div>'
+tRp172
+sS'locals'
+p173
+(dp174
+S'department'
+p175
+S'None'
+p176
+sssS'traceback'
+p177
+S'Traceback (most recent call last):\n  File "/home/www-data/web2py/gluon/restricted.py", line 227, in restricted\n    exec ccode in environment\n  File "/home/www-data/web2py/applications/emisv001/controllers/default.py", line 366, in <module>\n  File "applications/emisv001/modules/plugin_sqleditable/editable.py", line 394, in extract\n    r=func()\n  File "/home/www-data/web2py/gluon/tools.py", line 3440, in f\n    return action(*a, **b)\n  File "/home/www-data/web2py/applications/emisv001/controllers/default.py", line 249, in findresult\n    prgm = db(db.program.department == department.id).select()\nAttributeError: \'NoneType\' object has no attribute \'id\'\n'
+p178
+s.

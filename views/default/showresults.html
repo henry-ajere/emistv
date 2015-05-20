@@ -1,0 +1,10 @@
+{{extend 'reportlayout.html'}}
+<h2>Show Results</h2>
+
+<div>
+  {{=form}}
+</div>
+
+<strong>
+   {{=SPAN(A('Report', _href=URL('emisreport', 'resultreport', vars=request.vars)))}}
+</strong>

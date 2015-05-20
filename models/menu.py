@@ -1,0 +1,53 @@
+# -*- coding: utf-8 -*-
+# this file is released under public domain and you can use without limitations
+
+#########################################################################
+## Customize your APP title, subtitle and menus here
+#########################################################################
+
+response.logo = A(B('web',SPAN(2),'py'),XML('&trade;&nbsp;'),
+                  _class="brand",_href="http://www.afit.edu.ng")
+response.title = 'Airforce Institute of Technology (A.F.I.T)' #request.application.replace('_',' ').title()
+response.subtitle = 'Education Management Information System'
+
+## read more at http://dev.w3.org/html5/markup/meta.name.html
+response.meta.author = 'Henry Ajere <henro.ajere@gmail.com>'
+response.meta.keywords = 'web2py, python, framework'
+response.meta.generator = 'Web2py Web Framework'
+
+## your http://google.com/analytics id
+response.google_analytics_id = None
+
+#########################################################################
+## this is the main application menu add/remove items as required
+#########################################################################
+
+response.menu = [
+#(SPAN('Menu',  _class='list-group-item list-group-item def'), False, URL('default',  'index'), []),
+    (SPAN('Home',  _class='list-group-item list-group-item'), False, URL('default',  'index'), []),
+    
+    
+]
+
+DEVELOPMENT_MENU = True
+
+#########################################################################
+## provide shortcuts for development. remove in production
+#########################################################################
+
+def _():
+    # shortcuts
+    app = request.application
+    ctr = request.controller
+    # useful links to internal and external resources
+    response.menu += [
+        (SPAN('Students', _class='list-group-item list-group-item'), False, URL('default',  'student_page')),
+        (SPAN('Departments', _class='list-group-item list-group-item'), False, URL('default',  'department')),
+        (SPAN('Schools', _class='list-group-item list-group-item'), False, '#'),
+        (SPAN('Account', _class='list-group-item list-group-item'), False, URL('default',  'afitpay')),
+        
+                
+         ]
+if DEVELOPMENT_MENU: _()
+
+if "auth" in locals(): auth.wikimenu()

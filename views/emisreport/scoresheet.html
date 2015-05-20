@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head><title></title></head><body>{{extend 'reportlayout.html'}}
+    <div class="CSSTableGenerator" align="center">
+                
+                {{=IMG(_src=(URL('static', 'images/afitlogo.gif')), _width="50px", _height="50px")}}
+                <h2>{{=db.school(id=db.department(id=departid).school).name}} </h2>
+                <h4>{{=db.department(id=departid).name}} </h4>
+                <h4> AIR FORCE INSTITUTE OF TECHNOLOGY</h4>
+                <h4> NIGERIAN AIR FORCE </h4>
+                <h4> <u>STUDENT EXAMINATION RESULT LIST</u></h4>
+                <h4>Session:{{=db.school_session(id=sessionid).name}} SCORESHEET </h4>
+    
+     </div>
+     <hr>
+<p style="page-break-after:always;"></p>
+   
+    
+<div class="CSSTableGenerator">
+    
+    
+{{for semester in semesters:}}
+    {{cnt=0}}
+    {{countv,sgpa, cgp, ctcu,cgpa =0,0,0,0,0}}
+    <strong>{{=semester.semester}} Semester Result List for: </strong>
+<table>
+   
+    
+        
+    
+    <tr>
+        <td>SN:</td>
+        <td>Reg.No</t>
+        <td>SVC.No</td>
+        <td>Rank</td>
+        <td>Name</td>
+        
+        
+        
+            {{for course in filter(lambda course: course.semester == semester.semester, courses):}}
+         <td>{{=db.course_subject(id=course.course_subject).code}} </td>
+               
+            {{pass}}
+        
+            
+                
+                
+                    
+
+            
+            <td> REMARKS</td>
+
+    </tr>
+        
+        {{for student in students:}}
+        {{cnt=cnt+1}}
+        {{countv = countv + 1}}
+        {{if cnt == 1:}}
+        <strong>{{=db.program(student.program).fullname}} ({{=request.vars.levels}})</strong>
+        {{pass}}
+    
+    <tr align="left">
+        <td>{{=countv}}</td>
+        <td>{{=student.matric_no}}</td>
+        <td>{{=student.service}}</td>
+        <td>{{=student.rankk}}</td>
+        <td>{{=student.surname}}</td>
+        {{for result in filter(lambda result: result.semester == semester.semester and result.student == student.id, results):}}
+            {{cgp, ctcu =cgp + result.Wgp,ctcu + result.credit_unit}}
+        <td>
+           
+        </td>
+            {{pass}}
+        {{if ctcu:}}
+            {{sgpa=round(cgp/ctcu,2)}}
+        {{pass}}
+        
+        
+        <td>  </td>
+        
+        <!-- de-initialize -->
+        {{sgpa, cgp, ctcu,cgpa = 0,0,0,0}}
+        
+        
+    </tr>
+        {{pass}}
+</table>
+{{pass}}
+
+
+<div class="CSSTableGenerator"> </div>     
+    
+
+</body></html>
