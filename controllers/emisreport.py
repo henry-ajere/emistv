@@ -2,62 +2,11 @@
 # try something like
 #app_root/controllers/your_controller.py
 import math
-def dynamic_report_pisa():
-    form = plugin_appreport.REPORTFORM(table = db.student)
-
-    if form.accepts(request.vars, session):
-        return plugin_appreport.REPORTPISA(table = db.student, filter = dict(form.vars))
-
-    return dict(form = form)
-
-def datasource():
-    query = db(db.student.id>0)
-    response.headers['Content-Type'] = 'application/xml'
-
-    return rows_to_xml(rows=query.select(), fields=db.student.fields, parent_tag='students', child_tag='student')
-
-def dynamic_student_report():
-    #form = plugin_appreport.REPORTFORM(table = db.student)
-
-    #if form.accepts(request.vars, session):
-        #students = db(form.prep_filter(filter = dict(form.vars))).select()
-    students = db(db.student.id > 0).select()
-    logourl = URL('static','images/afitlogo.gif',host=True)
-
-    html = response.render('default/student_report.html', dict(students = students, logo=logourl))
-    return plugin_appreport.REPORTPISA(html = html)
-
-   #return dict(html = html)
-
-# List of Students
-
-def student_list():
-    students = db(db.student.id > 0).select()
-    logourl = URL('static','images/afitlogo.gif',host=True)
-    html = response.render('emisreport/student_list.html', dict(students = students, logo=logourl))
-
-    return plugin_appreport.REPORTPISA(html = html)
-
-def print_students():
-    return locals()
-
-def form():
-    form = FORM(
-        TABLE(
-            INPUT(_type='submit', _value='Print')
-        ),
-        _action='pdf',
-        _method='post',
-        _target='_blank'
-    )
-
-    return dict(form=form)
-
-def pdf():
-    report = jasper_report(template_name='afit_report_studentlist', data=str(datasource()),
-                           xpath_expression='students/student', response=response, content_disposition='inline')
-
-    return report
+from gluon import *
+from gluon.tools import Auth
+from gluon import request, DAL, response, session
+db = DAL('sqlite://storage.sqlite',pool_size=1,check_reserved=['all'])
+auth = Auth(db)
 
 def resultreport():
     #message= request.args[:5]

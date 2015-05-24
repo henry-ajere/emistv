@@ -8,8 +8,15 @@
 ## - download is for downloading files uploaded in the db (does streaming)
 ## - call exposes all registered services (none by default)
 #########################################################################
-from plugin_sqleditable.editable import SQLEDITABLE
-SQLEDITABLE.init()
+from gluon import *
+from gluon.tools import Auth
+from gluon import request, DAL, response, session
+#from plugin_sqleditable.editable import SQLEDITABLE
+
+
+db = DAL('sqlite://storage.sqlite',pool_size=1,check_reserved=['all'])
+auth = Auth(db)
+#SQLEDITABLE.init()
 REPORT_TITLE = ''
 @auth.requires_membership('misofficer')
 def index():

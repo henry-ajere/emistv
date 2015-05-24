@@ -1,9 +1,15 @@
 # coding: utf8
-from plugin_lazy_options_widget import lazy_options_widget
+from gluon import *
+from gluon.tools import Auth
+from gluon import request, DAL, response, session
+
+#from plugin_lazy_options_widget import lazy_options_widget
 from plugin_suggest_widget import suggest_widget
 from cascadedrop import CascadingSelect
 from gluon.contrib.populate import populate
 
+db = DAL('sqlite://storage.sqlite',pool_size=1,check_reserved=['all'])
+auth = Auth(db)
 
 db.define_table('school',
                 Field('name', requires=IS_NOT_EMPTY()),
